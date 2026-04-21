@@ -5,8 +5,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     openai_api_key: str = ""
-    openai_chat_model: str = "gpt-4o-mini"
-    openai_embedding_model: str = "text-embedding-3-small"
+    embedding_model: str = "text-embedding-3-small"
+    answering_model: str = "gpt-4o-mini"
 
     qdrant_url: str = ""
     qdrant_collection: str = "support_tickets"

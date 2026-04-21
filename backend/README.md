@@ -11,8 +11,8 @@ Create `.env` in backend folder:
 
 ```env
 OPENAI_API_KEY=your_key_here
-OPENAI_CHAT_MODEL=gpt-4o-mini
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+ANSWERING_MODEL=gpt-4o-mini
+EMBEDDING_MODEL=text-embedding-3-small
 
 # Optional: use remote Qdrant instead of local embedded storage
 QDRANT_URL=

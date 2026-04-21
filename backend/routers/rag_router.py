@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
+from answering_llm.llm_client import generate_answer
 from config import settings
 from rag.embed_query import embed_texts
-from rag.llm_client import generate_answer
+from rag.ingesting_script import ingest_csv_to_qdrant
 from rag.search_db import retrieve_embedding
 from schemas.rag_schemas import RAGCompareRequest, RAGCompareResponse, RAGScore
 
@@ -15,6 +16,32 @@ def _word_overlap(a: str, b: str) -> float:
     if not a_set:
         return 0.0
     return round(len(a_set.intersection(b_set)) / len(a_set), 3)
+
+
+@router.post("/ingest-csv")
+def ingest_csv(payload: dict | None = None) -> dict:
+    max_rows = 20
+    if payload and "max_rows" in payload:
+        try:
+            max_rows = int(payload.get("max_rows", 20))
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid max_rows value: {exc}") from exc
+
+    if max_rows < 1:
+        raise HTTPException(status_code=400, detail="max_rows must be >= 1")
+
+    try:
+        result = ingest_csv_to_qdrant(
+            max_rows=max_rows,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ingestion failed: {exc}") from exc
+
+    return result
 
 
 @router.post("/compare", response_model=RAGCompareResponse)

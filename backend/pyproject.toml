@@ -14,6 +14,7 @@ dependencies = [
 	"pydantic-settings>=2.4.0",
 	"python-dotenv>=1.0.1",
 	"vaderSentiment>=3.3.2",
+	"scikit-learn>=1.5.0",
 ]
 
 [project.scripts]

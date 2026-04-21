@@ -1,0 +1,11 @@
+id,text
+101,How do I connect my app to Wi-Fi? Open Settings then Network and select your Wi-Fi name and password.
+102,How do I update my profile picture? Go to Profile then click Edit and upload a square image.
+103,How can I enable email notifications? In Preferences toggle Email Alerts on and choose alert types.
+104,How do I export my reports? Open Reports choose date range and click Export CSV.
+105,How do I invite a teammate? Navigate to Team click Invite Member and enter their email.
+106,How do I reset MFA? From Security settings click Reset MFA then scan the new QR code.
+107,How do I change account language? Go to Preferences and select your language then save changes.
+108,How can I archive a project? Open project menu and choose Archive Project to hide it from active list.
+109,How do I restore an archived project? In Projects filter by Archived then select Restore.
+110,How do I cancel my subscription? In Billing open Plan settings and click Cancel Subscription.

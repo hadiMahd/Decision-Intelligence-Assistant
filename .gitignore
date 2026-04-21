@@ -8,3 +8,22 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Environment and secrets
+.env
+backend/.env
+frontent/.env
+
+# Node modules
+frontent/node_modules/
+frontend/node_modules/
+
+# Backend local data/artifacts
+backend/artifacts/qdrant/
+
+# OS and editor files
+.DS_Store
+.vscode/
+
+# Windows ADS metadata files
+*.Zone.Identifier

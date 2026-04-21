@@ -1,8 +1,9 @@
 from qdrant_client import QdrantClient
+from functools import lru_cache
 
 from config import settings
 
-
+@lru_cache(maxsize=1)
 def _build_client() -> QdrantClient:
     if settings.qdrant_url:
         return QdrantClient(url=settings.qdrant_url)
