@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from config import ensure_artifact_dirs, settings
 from rag.embed_query import embed_texts
+from routers.qdrant_db import get_qdrant_client
 
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
@@ -17,13 +17,7 @@ TEXT_COLUMN = "text"
 DEFAULT_BATCH_SIZE = 20
 
 
-def _build_client() -> QdrantClient:
-    if settings.qdrant_url:
-        return QdrantClient(url=settings.qdrant_url)
-    return QdrantClient(path=settings.qdrant_local_path)
-
-
-def _ensure_collection(client: QdrantClient) -> None:
+def _ensure_collection(client) -> None:
     if not client.collection_exists(collection_name=settings.qdrant_collection):
         client.create_collection(
             collection_name=settings.qdrant_collection,
@@ -48,7 +42,7 @@ def ingest_csv_to_qdrant(max_rows: int = 20, reset_collection: bool = False) -> 
             f"Expected id={ID_COLUMN}, text={TEXT_COLUMN}."
         )
 
-    client = _build_client()
+    client = get_qdrant_client()
 
     if reset_collection and client.collection_exists(collection_name=settings.qdrant_collection):
         client.delete_collection(collection_name=settings.qdrant_collection)
@@ -74,15 +68,15 @@ def ingest_csv_to_qdrant(max_rows: int = 20, reset_collection: bool = False) -> 
 
         points = []
         for ticket_id, text, vector in zip(valid_ids, valid_texts, vectors):
+            point_id = int(ticket_id) if ticket_id.isdigit() else abs(hash(ticket_id))
             points.append(
                 PointStruct(
-                    id=f"csv-{ticket_id}",
+                    id=point_id,
                     vector=vector,
                     payload={
-                        "ticket_id": ticket_id,
-                        "title": text[:180],
-                        "resolution": "",
-                        "source_text": text,
+                        "id": ticket_id,
+                        "text": text,
+                        "source": CSV_FILE,
                     },
                 )
             )

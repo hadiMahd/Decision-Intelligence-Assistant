@@ -1,21 +1,13 @@
 from fastapi import APIRouter, HTTPException
 
-from answering_llm.llm_client import generate_answer
 from config import settings
 from rag.embed_query import embed_texts
 from rag.ingesting_script import ingest_csv_to_qdrant
 from rag.search_db import retrieve_embedding
-from schemas.rag_schemas import RAGCompareRequest, RAGCompareResponse, RAGScore
+from services.llm_grounding import get_grounded_and_plain_answers
+from schemas.rag_schemas import RAGCompareRequest, RAGCompareResponse, RAGSearchRequest, RAGSearchResponse
 
 router = APIRouter(prefix="/rag", tags=["rag"])
-
-
-def _word_overlap(a: str, b: str) -> float:
-    a_set = {w for w in a.lower().split() if len(w) > 2}
-    b_set = {w for w in b.lower().split() if len(w) > 2}
-    if not a_set:
-        return 0.0
-    return round(len(a_set.intersection(b_set)) / len(a_set), 3)
 
 
 @router.post("/ingest-csv")
@@ -49,26 +41,28 @@ def compare_with_and_without_rag(payload: RAGCompareRequest) -> RAGCompareRespon
     query_vector = embed_texts([payload.ticket_text])[0]
     retrieved = retrieve_embedding(query_vector=query_vector, top_k=payload.top_k or settings.top_k)
 
-    no_rag_answer = generate_answer(ticket_text=payload.ticket_text, context_snippets=[])
-
-    snippets = [
-        f"[{t.get('ticket_id', 'unknown')}] {t.get('title', '')}. Resolution: {t.get('resolution', '')}"
-        for t in retrieved
-    ]
-    rag_answer = generate_answer(ticket_text=payload.ticket_text, context_snippets=snippets)
-
-    context_text = " ".join(snippets)
-    rag_overlap = _word_overlap(rag_answer, context_text)
-    no_rag_overlap = _word_overlap(no_rag_answer, context_text)
-
-    scores = RAGScore(
-        context_overlap_score=rag_overlap,
-        grounding_gain_score=round(rag_overlap - no_rag_overlap, 3),
+    answers = get_grounded_and_plain_answers(
+        ticket_text=payload.ticket_text,
+        retrieved_chunks=retrieved,
     )
+    no_rag_answer = answers["plain_answer"]
+    rag_answer = answers["grounded_answer"]
 
     return RAGCompareResponse(
         no_rag_answer=no_rag_answer,
         rag_answer=rag_answer,
         retrieved_tickets=retrieved,
-        scores=scores,
     )
+
+
+@router.post("/search", response_model=RAGSearchResponse)
+def search_rag(payload: RAGSearchRequest) -> RAGSearchResponse:
+    query_vector = embed_texts([payload.query])[0]
+    retrieved = retrieve_embedding(query_vector=query_vector, top_k=payload.top_k or settings.top_k)
+
+    return RAGSearchResponse(
+        query=payload.query,
+        top_k=payload.top_k,
+        results=retrieved,
+    )
+

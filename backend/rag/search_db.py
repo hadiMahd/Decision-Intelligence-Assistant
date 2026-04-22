@@ -1,17 +1,8 @@
-from qdrant_client import QdrantClient
-from functools import lru_cache
-
 from config import settings
-
-@lru_cache(maxsize=1)
-def _build_client() -> QdrantClient:
-    if settings.qdrant_url:
-        return QdrantClient(url=settings.qdrant_url)
-    return QdrantClient(path=settings.qdrant_local_path)
-
+from routers.qdrant_db import get_qdrant_client
 
 def retrieve_embedding(query_vector, top_k: int):
-    client = _build_client()
+    client = get_qdrant_client()
     hits = client.search(
         collection_name=settings.qdrant_collection,
         query_vector=query_vector,
