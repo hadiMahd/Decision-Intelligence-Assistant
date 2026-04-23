@@ -1,7 +1,0 @@
-[project]
-name = "frontent"
-version = "0.1.0"
-description = "Deprecated for React frontend setup; use package.json"
-readme = "README.md"
-requires-python = ">=3.12"
-dependencies = []

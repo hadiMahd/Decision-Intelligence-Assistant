@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 
 const FETCHED_TICKETS = [
-  "I canceled my subscription but still have not received my refund. Can you help?",
-  "The app is down and all my team sees is service unavailable during login.",
-  "My order arrived broken and I need a replacement immediately.",
-  "Checkout fails with error 502 whenever I try to pay by card.",
+  "How do I cancel my subscription from billing settings?",
+  "How can I reset MFA if I lost access to my authenticator app?",
+  "How do I export reports as CSV for a selected date range?",
+  "How do I invite a teammate to my workspace?",
 ];
 
 async function postJson(baseUrl, route, payload) {
@@ -46,6 +46,22 @@ function formatConfidence(value) {
   return Number.isNaN(n) ? String(value) : `${(n * 100).toFixed(1)}%`;
 }
 
+function formatSimilarityScore(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  const n = Number(value);
+  return Number.isNaN(n) ? "-" : `${(n * 100).toFixed(1)}%`;
+}
+
+function formatUrgencyLabel(value) {
+  if (value === null || value === undefined || value === "") return "-";
+
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === "1" || normalized === "urgent") return "urgent";
+  if (normalized === "0" || normalized === "not_urgent" || normalized === "not urgent") return "not urgent";
+
+  return String(value);
+}
+
 export default function App() {
   const backendUrl = "http://localhost:8000";
   const [selectedTicket, setSelectedTicket] = useState(FETCHED_TICKETS[0]);
@@ -55,6 +71,10 @@ export default function App() {
   const [error, setError] = useState("");
   const [ragResult, setRagResult] = useState(null);
   const [mlResult, setMlResult] = useState(null);
+  const [ingestText, setIngestText] = useState("");
+  const [ingestId, setIngestId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
 
   const activeTicket = useMemo(() => ticketText.trim() || selectedTicket, [ticketText, selectedTicket]);
 
@@ -161,11 +181,11 @@ export default function App() {
             <div className="results-grid">
               <article className="result-card result-soft">
                 <Badge tone="blue">Without RAG</Badge>
-                <p>{ragResult.no_rag_answer}</p>
+                <div className="answer-text">{ragResult.no_rag_answer}</div>
               </article>
               <article className="result-card result-accent">
                 <Badge tone="green">With RAG</Badge>
-                <p>{ragResult.rag_answer}</p>
+                <div className="answer-text">{ragResult.rag_answer}</div>
               </article>
             </div>
           )}
@@ -175,11 +195,15 @@ export default function App() {
               <div className="subsection-title">Retrieved tickets</div>
               <div className="ticket-list">
                 {(ragResult.retrieved_tickets || []).map((ticket, idx) => (
-                  <article className="mini-card" key={ticket.ticket_id || idx}>
-                    <strong>{ticket.ticket_id || `Ticket ${idx + 1}`}</strong>
-                    <div>{ticket.title || "No title"}</div>
-                    <p>{ticket.description || "No description"}</p>
-                    {ticket.resolution && <small>Resolution: {ticket.resolution}</small>}
+                  <article className="mini-card" key={ticket.id || idx}>
+                    <div className="ticket-header">
+                      <div className="ticket-id-source">
+                        <strong>ID: {ticket.id || "unknown"}</strong>
+                        <span className="ticket-source">Source: {ticket.source || "unknown"}</span>
+                        <span className="ticket-score">Similarity: {formatSimilarityScore(ticket.similarity_score)}</span>
+                      </div>
+                    </div>
+                    <p>{ticket.text || "No text"}</p>
                   </article>
                 ))}
               </div>
@@ -189,12 +213,8 @@ export default function App() {
           {ragResult && (
             <div className="metric-row">
               <div className="metric-card">
-                <span>Context overlap</span>
-                <strong>{String(ragResult.scores?.context_overlap_score ?? "-")}</strong>
-              </div>
-              <div className="metric-card">
-                <span>Grounding gain</span>
-                <strong>{String(ragResult.scores?.grounding_gain_score ?? "-")}</strong>
+                <span>Retrieved chunks</span>
+                <strong>{ragResult.retrieved_tickets?.length ?? 0}</strong>
               </div>
             </div>
           )}
@@ -205,6 +225,125 @@ export default function App() {
               <pre>{JSON.stringify(ragResult.retrieved_tickets, null, 2)}</pre>
             </details>
           )}
+        </Section>
+
+        <Section
+          title="RAG Search"
+          subtitle="Search your Qdrant collection with a query string."
+          tone="green"
+        >
+          <div className="actions-row">
+            <label className="inline-field">
+              <span>Top-K</span>
+              <input
+                type="number"
+                min={1}
+                max={5}
+                value={topK}
+                onChange={(e) => setTopK(Number(e.target.value) || 3)}
+              />
+            </label>
+
+            <label className="field field-compact flex-grow">
+              <span>Search query</span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="e.g., vpn disconnecting"
+              />
+            </label>
+
+            <button
+              className="primary-btn"
+              disabled={loading || !searchQuery.trim()}
+              onClick={() =>
+                runAction(async () => {
+                  const data = await postJson(backendUrl, "/rag/search", {
+                    query: searchQuery,
+                    top_k: topK,
+                  });
+                  setSearchResults(data);
+                })
+              }
+            >
+              Search
+            </button>
+          </div>
+
+          {searchResults && (
+            <div className="preview-box">
+              <Badge tone="green">Query</Badge>
+              <p>{searchResults.query}</p>
+            </div>
+          )}
+
+          {searchResults && (
+            <div className="subsection">
+              <div className="subsection-title">Search results ({searchResults.results.length})</div>
+              <div className="ticket-list">
+                {(searchResults.results || []).map((result, idx) => (
+                  <article className="mini-card" key={result.id || idx}>
+                    <div className="ticket-header">
+                      <div className="ticket-id-source">
+                        <strong>ID: {result.id || `Result ${idx + 1}`}</strong>
+                        <span className="ticket-source">Source: {result.source || "unknown"}</span>
+                        <span className="ticket-score">Similarity: {formatSimilarityScore(result.similarity_score)}</span>
+                      </div>
+                    </div>
+                    <p>{result.text || "No text"}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+        </Section>
+
+        <Section
+          title="Manual Text Ingest"
+          subtitle="Ingest a custom text into Qdrant for search testing."
+          tone="blue"
+        >
+          <div className="field-stack">
+            <label className="field field-compact">
+              <span>Text to ingest</span>
+              <textarea
+                rows={3}
+                value={ingestText}
+                onChange={(e) => setIngestText(e.target.value)}
+                placeholder="Enter ticket text to add to collection"
+              />
+            </label>
+
+            <label className="field field-compact">
+              <span>Ticket ID (optional)</span>
+              <input
+                type="text"
+                value={ingestId}
+                onChange={(e) => setIngestId(e.target.value)}
+                placeholder="e.g., manual-001"
+              />
+            </label>
+          </div>
+
+          <button
+            className="primary-btn"
+            disabled={loading || !ingestText.trim()}
+            onClick={() =>
+              runAction(async () => {
+                await postJson(backendUrl, "/rag/ingest-text", {
+                  text: ingestText,
+                  id: ingestId || undefined,
+                  source: "manual_test",
+                });
+                setIngestText("");
+                setIngestId("");
+                alert("Text ingested successfully!");
+              })
+            }
+          >
+            Ingest text
+          </button>
         </Section>
 
         <Section
@@ -228,21 +367,41 @@ export default function App() {
           </button>
 
           {mlResult && (
-            <div className="metric-grid metric-grid-3">
+            <div className="metric-grid metric-grid-4">
               <div className="metric-card">
                 <span>Raw model prediction</span>
-                <strong>{String(mlResult.raw_model_prediction)}</strong>
+                <strong>{formatUrgencyLabel(mlResult.raw_model_prediction)}</strong>
                 <small>Confidence: {formatConfidence(mlResult.raw_model_confidence)}</small>
               </div>
               <div className="metric-card">
                 <span>Engineered prediction</span>
-                <strong>{String(mlResult.engineered_model_prediction)}</strong>
+                <strong>{formatUrgencyLabel(mlResult.engineered_model_prediction)}</strong>
                 <small>Confidence: {formatConfidence(mlResult.engineered_model_confidence)}</small>
               </div>
               <div className="metric-card">
-                <span>Disagreement</span>
+                <span>LLM urgency</span>
+                <strong>{String(mlResult.llm_prediction)}</strong>
+                <small>urgent or not_urgent</small>
+              </div>
+              <div className="metric-card">
+                <span>Raw vs LLM</span>
+                <strong>{mlResult.raw_vs_llm_disagreement ? "Disagree" : "Agree"}</strong>
+                <small>Models align on urgency</small>
+              </div>
+            </div>
+          )}
+
+          {mlResult && (
+            <div className="metric-grid metric-grid-2">
+              <div className="metric-card">
+                <span>ML models disagreement</span>
                 <strong>{String(mlResult.disagreement)}</strong>
-                <small>True means labels differ.</small>
+                <small>Raw vs Engineered differ</small>
+              </div>
+              <div className="metric-card">
+                <span>Engineered vs LLM</span>
+                <strong>{mlResult.engineered_vs_llm_disagreement ? "Disagree" : "Agree"}</strong>
+                <small>Models align on urgency</small>
               </div>
             </div>
           )}

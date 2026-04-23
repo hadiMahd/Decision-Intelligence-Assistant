@@ -213,7 +213,7 @@ input:focus {
 
 .actions-row {
   display: grid;
-  grid-template-columns: 1fr 120px 1fr;
+  grid-template-columns: auto 1fr auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 14px;
@@ -262,6 +262,18 @@ input:focus {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.metric-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metric-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.flex-grow {
+  flex: 1;
+}
+
 .result-card,
 .metric-card,
 .mini-card {
@@ -276,6 +288,32 @@ input:focus {
   margin: 10px 0 0;
   line-height: 1.55;
   color: var(--ink);
+}
+
+.answer-text {
+  margin-top: 10px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: var(--ink);
+}
+
+.source-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1f6fd;
+  border: 1px solid #d8e5f4;
+  color: var(--blue-ink);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .mini-card strong,
@@ -305,6 +343,60 @@ input:focus {
 .ticket-list {
   display: grid;
   gap: 10px;
+}
+
+.ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ticket-id-source {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.ticket-header strong {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  color: var(--blue-ink);
+  min-width: fit-content;
+}
+
+.ticket-source {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--blue), #e8f2ff);
+  color: var(--blue-ink);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ticket-score {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--green), #e8f8ee);
+  color: var(--green-ink);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .details-box {
@@ -358,7 +450,9 @@ input:focus {
   .actions-row,
   .results-grid,
   .metric-grid,
-  .metric-grid-3 {
+  .metric-grid-3,
+  .metric-grid-4,
+  .metric-grid-2 {
     grid-template-columns: 1fr;
   }
 

@@ -47,6 +47,7 @@ class RetrievedTicket(BaseModel):
     id: str
     text: str
     source: str
+    similarity_score: float | None = None
 
 
 class RAGCompareRequest(BaseModel):

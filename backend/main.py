@@ -2,6 +2,7 @@ import logging
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from config import ensure_artifact_dirs
 from routers.ml_router import router as ml_router
@@ -18,6 +19,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Support Ticket Compare API", version="0.1.0")
 
+# Enable CORS for browser-based frontend requests.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(rag_router)
 app.include_router(ml_router)
 app.include_router(qdrant_router)
@@ -32,7 +42,7 @@ def health() -> dict:
 def run() -> None:
     ensure_artifact_dirs()
     logger.info("Starting FastAPI server on http://0.0.0.0:8000")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, log_level="info", reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, log_level="info")
 
 
 if __name__ == "__main__":

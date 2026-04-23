@@ -4,8 +4,7 @@ If the context is not enough, reply exactly:
 couldnt find relevent results and i cant help u
 
 Keep the answer concise and actionable.
-Always cite the chunk you used at the end of the answer in this format:
-Source: [chunk_id] (source: source_name)
+If you cannot answer, return only the exact no-context sentence above.
 
 --- CONTEXT START ---
 {context}

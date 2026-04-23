@@ -20,6 +20,14 @@ def _clip_for_log(text: str, limit: int = MAX_LOG_TEXT_CHARS) -> str:
     return f"{normalized[:limit]}..."
 
 
+def _normalize_no_context_answer(answer: str) -> str:
+    normalized_target = " ".join(NO_CONTEXT_REPLY.lower().split())
+    normalized_answer = " ".join((answer or "").lower().split())
+    if normalized_target in normalized_answer:
+        return NO_CONTEXT_REPLY
+    return (answer or "").strip()
+
+
 @lru_cache(maxsize=1)
 def get_openai_client() -> OpenAI:
     return OpenAI(api_key=settings.openai_api_key)
@@ -88,7 +96,8 @@ Answer the ticket using ONLY the retrieved context.
 If the context is not enough, reply exactly with:
 {NO_CONTEXT_REPLY}
 """.strip()
-    return _call_llm(system_prompt, user_prompt, has_context=True)
+    answer = _call_llm(system_prompt, user_prompt, has_context=True)
+    return _normalize_no_context_answer(answer)
 
 
 def generate_answer(
