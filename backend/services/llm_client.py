@@ -22,8 +22,8 @@ def _clip_for_log(text: str, limit: int = MAX_LOG_TEXT_CHARS) -> str:
 
 def _normalize_no_context_answer(answer: str) -> str:
     normalized_target = " ".join(NO_CONTEXT_REPLY.lower().split())
-    normalized_answer = " ".join((answer or "").lower().split())
-    if normalized_target in normalized_answer:
+    normalized_answer = " ".join((answer or "").lower().split()).strip(" .!?'\"")
+    if normalized_target == normalized_answer:
         return NO_CONTEXT_REPLY
     return (answer or "").strip()
 
@@ -93,7 +93,8 @@ Retrieved context:
 {context_block}
 
 Answer the ticket using ONLY the retrieved context.
-If the context is not enough, reply exactly with:
+If the context includes part of the answer, provide that part clearly and state what is missing.
+Only if there is no relevant information in the retrieved context, reply exactly with:
 {NO_CONTEXT_REPLY}
 """.strip()
     answer = _call_llm(system_prompt, user_prompt, has_context=True)
