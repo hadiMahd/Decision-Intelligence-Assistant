@@ -1,7 +1,8 @@
-import pickle
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+import joblib
 
 from ml.preprocess import FEATURE_ORDER
 
@@ -13,8 +14,10 @@ MODEL_PATH = ARTIFACTS_DIR / "final_urgency_model.pkl"
 def _load_model() -> Any:
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"Engineered model not found at {MODEL_PATH}")
-    with open(MODEL_PATH, "rb") as f:
-        return pickle.load(f)
+    try:
+        return joblib.load(MODEL_PATH)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to load engineered model at {MODEL_PATH}: {exc}") from exc
 
 
 def infer_engineered(engineered_features: dict[str, float | int]) -> tuple[Any, float | None]:

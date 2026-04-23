@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from prompts.grounded_answer import GROUNDED_SYSTEM_PROMPT
 from services.llm_client import generate_grounded_answer, generate_plain_answer
+
+
+logger = logging.getLogger(__name__)
 
 
 def _chunk_to_context_snippet(chunk: dict[str, Any]) -> str:
@@ -29,6 +33,7 @@ def get_grounded_and_plain_answers(
     ticket_text: str,
     retrieved_chunks: list[dict[str, Any]],
 ) -> dict[str, str]:
+    logger.info("Generating plain and grounded answers: retrieved_chunks=%s", len(retrieved_chunks))
     plain_answer = generate_plain_answer(ticket_text=ticket_text)
 
     context_snippets = [
@@ -42,6 +47,7 @@ def get_grounded_and_plain_answers(
         system_prompt=grounded_prompt,
         context_snippets=context_snippets,
     )
+    logger.info("Grounded answer generated with %s context snippets", len(context_snippets))
 
     return {
         "plain_answer": plain_answer,

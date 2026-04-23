@@ -1,5 +1,7 @@
+import logging
 from functools import lru_cache
 from typing import List
+from typing import Literal
 
 from openai import OpenAI
 
@@ -7,6 +9,15 @@ from config import settings
 from prompts.plain_answer import PLAIN_SYSTEM_PROMPT
 
 NO_CONTEXT_REPLY = "couldnt find relevent results and i cant help u"
+logger = logging.getLogger(__name__)
+MAX_LOG_TEXT_CHARS = 280
+
+
+def _clip_for_log(text: str, limit: int = MAX_LOG_TEXT_CHARS) -> str:
+    normalized = " ".join(text.split())
+    if len(normalized) <= limit:
+        return normalized
+    return f"{normalized[:limit]}..."
 
 
 @lru_cache(maxsize=1)
@@ -20,12 +31,20 @@ def get_system_prompt() -> str:
 
 
 def _call_llm(system_prompt: str, user_prompt: str, has_context: bool) -> str:
+    logger.info(
+        "LLM call started: model=%s has_context=%s user_prompt=%s",
+        settings.answering_model,
+        has_context,
+        _clip_for_log(user_prompt),
+    )
     if not settings.openai_api_key:
         if has_context:
+            logger.warning("LLM call mocked because OPENAI_API_KEY is not set")
             return (
                 "[Mocked LLM response with RAG] "
                 "Context was provided, so the answer should be grounded only in that context."
             )
+        logger.warning("LLM call mocked because OPENAI_API_KEY is not set")
         return "[Mocked LLM response without RAG] Please answer based on the ticket only."
 
     completion = get_openai_client().chat.completions.create(
@@ -36,7 +55,9 @@ def _call_llm(system_prompt: str, user_prompt: str, has_context: bool) -> str:
         ],
         temperature=0.0,
     )
-    return completion.choices[0].message.content or ""
+    answer = completion.choices[0].message.content or ""
+    logger.info("LLM call completed: has_context=%s answer=%s", has_context, _clip_for_log(answer))
+    return answer
 
 
 def generate_plain_answer(ticket_text: str) -> str:
@@ -82,3 +103,44 @@ def generate_answer(
             system_prompt=system_prompt or get_system_prompt(),
         )
     return generate_plain_answer(ticket_text=ticket_text)
+
+
+def classify_ticket_urgency(ticket_text: str) -> Literal["urgent", "not_urgent"]:
+    lowered = ticket_text.lower()
+    heuristic_urgent_terms = (
+        "down",
+        "outage",
+        "broken",
+        "cannot",
+        "can't",
+        "cant",
+        "urgent",
+        "asap",
+        "fails",
+        "failing",
+        "error",
+    )
+
+    if not settings.openai_api_key:
+        prediction = "urgent" if any(term in lowered for term in heuristic_urgent_terms) else "not_urgent"
+        logger.warning("Urgency classification is mocked because OPENAI_API_KEY is not set: prediction=%s", prediction)
+        return prediction
+
+    system_prompt = (
+        "You are a strict classifier for support ticket urgency. "
+        "Respond with exactly one label: urgent or not_urgent. "
+        "No explanation and no extra words."
+    )
+    user_prompt = f"Ticket:\n{ticket_text}\n\nLabel:"
+    raw = _call_llm(system_prompt=system_prompt, user_prompt=user_prompt, has_context=False).strip().lower()
+
+    if "not_urgent" in raw:
+        prediction = "not_urgent"
+    elif raw == "urgent" or raw.startswith("urgent"):
+        prediction = "urgent"
+    else:
+        prediction = "urgent" if any(term in lowered for term in heuristic_urgent_terms) else "not_urgent"
+        logger.warning("Unexpected urgency label from LLM (%s); fallback prediction=%s", _clip_for_log(raw), prediction)
+
+    logger.info("LLM urgency classification: prediction=%s", prediction)
+    return prediction

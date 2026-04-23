@@ -1,7 +1,8 @@
-import pickle
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+import joblib
 
 from ml.preprocess import preprocess_raw_text
 
@@ -14,16 +15,20 @@ MODEL_PATH = ARTIFACTS_DIR / "tfidf_urgency_model.pkl"
 def _load_vectorizer() -> Any:
     if not VECTORIZER_PATH.exists():
         raise FileNotFoundError(f"TF-IDF vectorizer not found at {VECTORIZER_PATH}")
-    with open(VECTORIZER_PATH, "rb") as f:
-        return pickle.load(f)
+    try:
+        return joblib.load(VECTORIZER_PATH)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to load TF-IDF vectorizer at {VECTORIZER_PATH}: {exc}") from exc
 
 
 @lru_cache(maxsize=1)
 def _load_model() -> Any:
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"TF-IDF model not found at {MODEL_PATH}")
-    with open(MODEL_PATH, "rb") as f:
-        return pickle.load(f)
+    try:
+        return joblib.load(MODEL_PATH)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to load TF-IDF model at {MODEL_PATH}: {exc}") from exc
 
 
 def infer_tfidf(raw_text: str, cleaned_text: str | None = None) -> tuple[Any, float | None]:
