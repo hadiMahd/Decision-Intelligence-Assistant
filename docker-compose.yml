@@ -14,27 +14,27 @@ services:
       dockerfile: Dockerfile
     container_name: backend
     depends_on:
-      - qdrant
+      - qdrant  # Changed back to simple dependency
     env_file:
       - ./.env
     environment:
-      #QDRANT_URL: http://qdrant:6333
-      #QDRANT_HOST: qdrant
-      #QDRANT_PORT: 6333
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
     ports:
       - "8000:8000"
 
-  frontent:
+  frontend:
     build:
-      context: ./frontent
+      context: ./frontend
       dockerfile: Dockerfile
-    container_name: frontent
+    container_name: frontend
     depends_on:
       - backend
     ports:
       - "5173:5173"
     volumes:
-      - ./frontent:/app
+      - ./frontend:/app
       - /app/node_modules
 
 volumes:

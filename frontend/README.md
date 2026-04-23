@@ -11,7 +11,7 @@ Minimal React (Vite) UI for hardcoded ticket tests.
 ## Install and Run
 
 ```bash
-cd frontent
+cd frontend
 npm install
 npm run dev
 ```

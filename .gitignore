@@ -12,10 +12,10 @@ wheels/
 # Environment and secrets
 .env
 backend/.env
-frontent/.env
+frontend/.env
 
 # Node modules
-frontent/node_modules/
+frontend/node_modules/
 frontend/node_modules/
 
 # Backend local data/artifacts
